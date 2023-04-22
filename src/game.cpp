@@ -6,24 +6,56 @@ using namespace std;
 class Game {
     int difficulty;
     int numMinesLeft;
-    int **board;
+    Tile **board;
 
     public:
-        Game(int difficulty) {
+        Game(int difficulty, int x, int y) {
             this->difficulty = difficulty;
             numMinesLeft = difficulty / 2;
-            this->board = setBoard(1, 1, difficulty);
+            this->board = setBoard(x, y, difficulty);
         }
         void printBoard();
         void freeBoard();
-
+        void revealTile(int x, int y);
     private:
-        int ** setBoard(int x, int y, int numRCs);
+        Tile ** setBoard(int x, int y, int numRCs);
         void setAdjacent(int **board);
         int checkAdjacentForMines(int posX, int posY, int **board, int numRCs);
-        bool checkAdjacentIsZero(int posX, int posY, int **board, int numRCs)
+        bool checkAdjacentIsZero(int posX, int posY, int **board, int numRCs);
 
 };
+
+void Game::revealTile(int x, int y) {
+    if(board[x][y].isRevealed) {
+        return;
+    }
+    if(board[x][y].getIsMine()) {
+        cout << "You hit a mine! Game over!" << endl;
+        return;
+    } else {
+        if(board[x][y].getNumMinesAdjacent() == 0) {
+            board[x][y].setRevealed();
+            for(int i = -1; i < 2; i++) {
+                for(int j = -1; j < 2; j++) {
+                    if(x+i >= 0 && x+i < difficulty && y+j >= 0 && y+j < difficulty) {
+                        revealTile(x+i, y+j);
+                    }
+                }
+            }
+        } else {
+            board[x][y].isRevealed = true;
+            if(board[x][y].getNumMinesAdjacent() == 0) {
+                for(int i = -1; i < 2; i++) {
+                    for(int j = -1; j < 2; j++) {
+                        if(x+i >= 0 && x+i < difficulty && y+j >= 0 && y+j < difficulty) {
+                            revealTile(x+i, y+j);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
 bool Game::checkAdjacentIsZero(int posX, int posY, int **board, int numRCs) {
     for(int i = -1; i < 2; i++) {
@@ -62,7 +94,12 @@ void Game::freeBoard() {
 void Game::printBoard() {
     for(int i = 0; i < difficulty; i++) {
         for(int j = 0; j < difficulty; j++) {
-            printf("%4d", board[i][j]);
+            if(board[i][j].isRevealed) {
+                printf("%4d", board[i][j].getNumMinesAdjacent());
+            } else {
+                printf("%4c", 'X');
+            }
+
         }
         cout << endl;
     }
@@ -78,7 +115,7 @@ void Game::setAdjacent(int **board) {
     }
 }
 
-int ** Game::setBoard(int x, int y, int numRCs) {
+Tile ** Game::setBoard(int x, int y, int numRCs) {
     int **board = new int*[numRCs];
 
     // Initiates board with -12 (arbitrary value)
@@ -109,12 +146,25 @@ int ** Game::setBoard(int x, int y, int numRCs) {
     }
     setAdjacent(board);
 
-    Tile
-    return board;
+    Tile **tileBoard = new Tile*[numRCs];
+    for(int i = 0; i<numRCs; i++) {
+        tileBoard[i] = new Tile[numRCs];
+        for(int j = 0; j<numRCs; j++) {
+            if(board[i][j] == -1) {
+                tileBoard[i][j].setIsMine(true);
+                tileBoard[i][j].setNumMinesAdjacent(-1);
+            } else {
+                tileBoard[i][j].setNumMinesAdjacent(board[i][j]);
+            }
+        }
+    }
+    return tileBoard;
 }
 
 int main() {
-    Game game = Game(10);
-    game.printBoard();
+    Game game = Game(10, 3, 6);
+
+    game.revealTile(3, 6);
+        game.printBoard();
     game.freeBoard();
 }
