@@ -3,53 +3,54 @@
 #include "tile.h"
 using namespace std;
 
+// Main goals: 
+//  - reduce the amount of guessing necessary to solve the board.
+//  - implement a solver that can solve the board.
+
 class Game {
     int difficulty;
     int numMinesLeft;
-    Tile **board;
+    bool isSolved;
 
     public:
         Game(int difficulty, int x, int y) {
             this->difficulty = difficulty;
             numMinesLeft = difficulty / 2;
             this->board = setBoard(x, y, difficulty);
+            this->initialClick = {x, y};
+            this->isSolved = false;
         }
         void printBoard();
         void freeBoard();
         void revealTile(int x, int y);
+        void solveBoard();
     private:
+        vector<int> initialClick;
+        Tile **board;
         Tile ** setBoard(int x, int y, int numRCs);
         void setAdjacent(int **board);
         int checkAdjacentForMines(int posX, int posY, int **board, int numRCs);
         bool checkAdjacentIsZero(int posX, int posY, int **board, int numRCs);
-
 };
 
 void Game::revealTile(int x, int y) {
+    // If already revealed, do nothing
     if(board[x][y].isRevealed) {
         return;
     }
+    // If mine, game over
     if(board[x][y].getIsMine()) {
         cout << "You hit a mine! Game over!" << endl;
         return;
     } else {
+        // Reveals mine otherwise
+        board[x][y].isRevealed = true;
+        // If zero, recurse and reveal other mines around that square.
         if(board[x][y].getNumMinesAdjacent() == 0) {
-            board[x][y].setRevealed();
             for(int i = -1; i < 2; i++) {
                 for(int j = -1; j < 2; j++) {
                     if(x+i >= 0 && x+i < difficulty && y+j >= 0 && y+j < difficulty) {
                         revealTile(x+i, y+j);
-                    }
-                }
-            }
-        } else {
-            board[x][y].isRevealed = true;
-            if(board[x][y].getNumMinesAdjacent() == 0) {
-                for(int i = -1; i < 2; i++) {
-                    for(int j = -1; j < 2; j++) {
-                        if(x+i >= 0 && x+i < difficulty && y+j >= 0 && y+j < difficulty) {
-                            revealTile(x+i, y+j);
-                        }
                     }
                 }
             }
@@ -58,6 +59,7 @@ void Game::revealTile(int x, int y) {
 }
 
 bool Game::checkAdjacentIsZero(int posX, int posY, int **board, int numRCs) {
+    // Checks to see if the tile is surrounded by 0s
     for(int i = -1; i < 2; i++) {
         for(int j = -1; j < 2; j++) {
             if(posX+i >= 0 && posX+i < numRCs && posY+j >= 0 && posY+j < numRCs) {
@@ -72,6 +74,7 @@ bool Game::checkAdjacentIsZero(int posX, int posY, int **board, int numRCs) {
 
 int Game::checkAdjacentForMines(int posX, int posY, int **board, int numRCs) {
     int counter = 0;
+    // Checks around a tile for the number of mines
     for(int i = -1; i < 2; i++) {
         for(int j = -1; j < 2; j++) {
             if(posX+i >= 0 && posX+i < numRCs && posY+j >= 0 && posY+j < numRCs) {
@@ -86,16 +89,24 @@ int Game::checkAdjacentForMines(int posX, int posY, int **board, int numRCs) {
 
 
 void Game::freeBoard() {
+    // Freeing the memory
     for(int i = 0; i < difficulty; i++) {
         delete[] board[i];
     }
     delete[] board;
 }
 void Game::printBoard() {
+    // Prints the board.
     for(int i = 0; i < difficulty; i++) {
         for(int j = 0; j < difficulty; j++) {
             if(board[i][j].isRevealed) {
-                printf("%4d", board[i][j].getNumMinesAdjacent());
+                if(board[i][j].isFlagged) {
+                    printf("%4c", 'F');
+                    continue;
+                } 
+                else {
+                    printf("%4d", board[i][j].getNumMinesAdjacent());
+                }
             } else {
                 printf("%4c", 'X');
             }
@@ -106,6 +117,7 @@ void Game::printBoard() {
 }
 
 void Game::setAdjacent(int **board) {
+    // Checks area around each tile for mines and sets the tile to the number of mines adjacent.
     for(int i = 0; i<difficulty; i++) {
         for(int j = 0; j<difficulty; j++) {
             if(board[i][j] != -1) {
@@ -147,6 +159,7 @@ Tile ** Game::setBoard(int x, int y, int numRCs) {
     setAdjacent(board);
 
     Tile **tileBoard = new Tile*[numRCs];
+    // Converts board from ints to Tiles.
     for(int i = 0; i<numRCs; i++) {
         tileBoard[i] = new Tile[numRCs];
         for(int j = 0; j<numRCs; j++) {
@@ -161,10 +174,14 @@ Tile ** Game::setBoard(int x, int y, int numRCs) {
     return tileBoard;
 }
 
+void Game::solveBoard() {
+    // Solves the board using set logic.
+    // TODO: implement backtracking (? maybe not necessary)
+}
+
 int main() {
     Game game = Game(10, 3, 6);
-
     game.revealTile(3, 6);
-        game.printBoard();
+    game.printBoard();
     game.freeBoard();
 }
